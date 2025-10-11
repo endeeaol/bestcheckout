@@ -10,7 +10,7 @@ class BestCheckout extends Module
         $this->name = 'bestcheckout';
         $this->tab = 'checkout';
         $this->version = '2.1.0';
-        $this->author = 'ENBL';
+        $this->author = 'ENBL & Moduły Prestashop 8.2';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.2.0', 'max' => '9.0.0'];
         $this->bootstrap = true;
@@ -18,90 +18,50 @@ class BestCheckout extends Module
         parent::__construct();
 
         $this->displayName = $this->l('Best Checkout');
-        $this->description = $this->l('Ulepszony proces składania zamówienia z poziomą nawigacją kroków i dodatkami do podsumowania koszyka.');
+        $this->description = $this->l('Dostarcza zmienną z aktualnym krokiem zamówienia do szablonu Smarty.');
     }
 
+    /**
+     * Instalacja modułu - rejestrujemy DWA kluczowe hooki.
+     */
     public function install()
     {
         return parent::install()
-            && $this->registerHook('displayCheckoutSummary')
-            && $this->registerHook('displayCartSummaryAddon')
+            && $this->registerHook('actionFrontControllerSetVariables')
             && $this->registerHook('actionFrontControllerSetMedia');
     }
 
-    public function uninstall()
+    /**
+     * To jest serce naszego modułu.
+     * Uruchamia się tuż przed renderowaniem szablonu i wstrzykuje naszą zmienną.
+     */
+    public function hookActionFrontControllerSetVariables(array &$params)
     {
-        return parent::uninstall();
-    }
+        // Sprawdzamy, czy jesteśmy na stronie zamówienia
+        if ($this->context->controller->php_self === 'order') {
+            
+            $checkoutProcess = $this->context->controller->getCheckoutProcess();
 
-    public function hookDisplayCheckoutSummary($params)
-    {
-        $process = $this->context->controller->getCheckoutProcess();
-
-        if ($process && method_exists($process, 'getSteps')) {
-            $steps = [];
-
-            foreach ($process->getSteps() as $step) {
-                $steps[] = [
-                    'title' => method_exists($step, 'getTitle') ? $step->getTitle() : 'Krok',
-                    'is_current' => method_exists($step, 'isCurrent') ? $step->isCurrent() : false,
-                    'is_complete' => method_exists($step, 'isCompleted') ? $step->isCompleted() : null,
-                    'is_reachable' => method_exists($step, 'isReachable') ? $step->isReachable() : false,
-                ];
+            if (Validate::isLoadedObject($checkoutProcess)) {
+                $currentStepIdentifier = $checkoutProcess->getSelectedStepIdentifier();
+                
+                // Przypisujemy kluczową zmienną do Smarty
+                $this->context->smarty->assign('current_step_identifier', $currentStepIdentifier);
             }
-
-            $this->context->smarty->assign([
-                'bestcheckout_steps' => $steps,
-            ]);
-
-            file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[STEPS ASSIGNED IN HOOK] ' . count($steps) . " steps\n", FILE_APPEND);
-
-            return $this->display(__FILE__, 'views/templates/front/_partials/navigation.tpl');
         }
-
-        file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[CHECKOUT PROCESS NOT AVAILABLE IN HOOK]' . "\n", FILE_APPEND);
-        return '';
     }
 
-    public function hookDisplayCartSummaryAddon($params)
-    {
-        $cart = $this->context->cart;
-
-        $this->context->smarty->assign([
-            'bestcheckout_cart_total' => $cart->getOrderTotal(),
-            'bestcheckout_cart_products' => $cart->getProducts(),
-        ]);
-
-        file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[CART SUMMARY ADDON RENDERED]' . "\n", FILE_APPEND);
-
-        return $this->display(__FILE__, 'views/templates/front/_partials/cart-addon.tpl');
-    }
-
+    /**
+     * Ten hook dołącza nasz plik CSS do strony zamówienia.
+     */
     public function hookActionFrontControllerSetMedia()
     {
-        if ($this->context->controller instanceof OrderController) {
+        if ($this->context->controller->php_self === 'order') {
             $this->context->controller->registerStylesheet(
                 'module-bestcheckout-style',
                 'modules/' . $this->name . '/views/css/bestcheckout.css',
-                ['media' => 'all', 'priority' => 150]
+                ['media' => 'all', 'priority' => 200]
             );
-        }
-    }
-
-    public function hookActionFrontControllerInitAfter($params)
-    {
-        if ($this->context->controller instanceof OrderController) {
-            $absolute_path = _PS_MODULE_DIR_ . $this->name . '/views/templates/front/theme-overrides/checkout/_partials/cart-summary.tpl';
-
-            if (is_readable($absolute_path)) {
-                file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[OVERRIDE FOUND] ' . $absolute_path . "\n", FILE_APPEND);
-            } else {
-                file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[OVERRIDE MISSING] ' . $absolute_path . "\n", FILE_APPEND);
-            }
-
-            file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[INIT AFTER: ORDER CONTROLLER DETECTED]' . "\n", FILE_APPEND);
-        } else {
-            file_put_contents(_PS_ROOT_DIR_ . '/log_bestcheckout.txt', '[INIT AFTER: NOT ORDER CONTROLLER]' . "\n", FILE_APPEND);
         }
     }
 }
