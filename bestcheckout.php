@@ -9,7 +9,7 @@ class BestCheckout extends Module
     {
         $this->name = 'bestcheckout';
         $this->tab = 'checkout';
-        $this->version = '2.1.0';
+        $this->version = '2.1.1'; // Podbijam wersję
         $this->author = 'ENBL & Moduły Prestashop 8.2';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.2.0', 'max' => '9.0.0'];
@@ -21,9 +21,6 @@ class BestCheckout extends Module
         $this->description = $this->l('Dostarcza zmienną z aktualnym krokiem zamówienia do szablonu Smarty.');
     }
 
-    /**
-     * Instalacja modułu - rejestrujemy DWA kluczowe hooki.
-     */
     public function install()
     {
         return parent::install()
@@ -31,29 +28,27 @@ class BestCheckout extends Module
             && $this->registerHook('actionFrontControllerSetMedia');
     }
 
-    /**
-     * To jest serce naszego modułu.
-     * Uruchamia się tuż przed renderowaniem szablonu i wstrzykuje naszą zmienną.
-     */
     public function hookActionFrontControllerSetVariables(array &$params)
     {
-        // Sprawdzamy, czy jesteśmy na stronie zamówienia
         if ($this->context->controller->php_self === 'order') {
             
             $checkoutProcess = $this->context->controller->getCheckoutProcess();
 
-            if (Validate::isLoadedObject($checkoutProcess)) {
-                $currentStepIdentifier = $checkoutProcess->getSelectedStepIdentifier();
+            if (is_object($checkoutProcess)) {
                 
-                // Przypisujemy kluczową zmienną do Smarty
-                $this->context->smarty->assign('current_step_identifier', $currentStepIdentifier);
+                // === TUTAJ JEST KLUCZOWA POPRAWKA ===
+                // 1. Pobieramy obiekt aktualnego kroku
+                $currentStep = $checkoutProcess->getCurrentStep();
+
+                // 2. Dopiero z obiektu kroku pobieramy jego identyfikator
+                if (is_object($currentStep)) {
+                    $currentStepIdentifier = $currentStep->getIdentifier();
+                    $this->context->smarty->assign('current_step_identifier', $currentStepIdentifier);
+                }
             }
         }
     }
 
-    /**
-     * Ten hook dołącza nasz plik CSS do strony zamówienia.
-     */
     public function hookActionFrontControllerSetMedia()
     {
         if ($this->context->controller->php_self === 'order') {
