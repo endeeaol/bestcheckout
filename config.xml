@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<module>
+  <name>bestcheckout</name>
+  <displayName>Best Checkout</displayName>
+  <version>2.0.0</version>
+  <author>ENBL</author>
+  <description>Ulepszony proces składania zamówienia z poziomą nawigacją kroków.</description>
+  <tab>checkout</tab>
+  <is_configurable>0</is_configurable>
+  <need_instance>0</need_instance>
+  <ps_versions_compliancy>
+    <min>8.1.0</min>
+    <max>9.0.0</max>
+  </ps_versions_compliancy>
+</module>
