@@ -9,7 +9,7 @@ class BestCheckout extends Module
     {
         $this->name = 'bestcheckout';
         $this->tab = 'checkout';
-        $this->version = '2.1.1'; // Podbijam wersję
+        $this->version = '2.1.1';
         $this->author = 'ENBL & Moduły Prestashop 8.2';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.2.0', 'max' => '9.0.0'];
@@ -25,7 +25,8 @@ class BestCheckout extends Module
     {
         return parent::install()
             && $this->registerHook('actionFrontControllerSetVariables')
-            && $this->registerHook('actionFrontControllerSetMedia');
+            && $this->registerHook('actionFrontControllerSetMedia')
+            && $this->registerHook('displayPaymentTop');
     }
 
     public function hookActionFrontControllerSetVariables(array &$params)
@@ -35,12 +36,8 @@ class BestCheckout extends Module
             $checkoutProcess = $this->context->controller->getCheckoutProcess();
 
             if (is_object($checkoutProcess)) {
-                
-                // === TUTAJ JEST KLUCZOWA POPRAWKA ===
-                // 1. Pobieramy obiekt aktualnego kroku
                 $currentStep = $checkoutProcess->getCurrentStep();
 
-                // 2. Dopiero z obiektu kroku pobieramy jego identyfikator
                 if (is_object($currentStep)) {
                     $currentStepIdentifier = $currentStep->getIdentifier();
                     $this->context->smarty->assign('current_step_identifier', $currentStepIdentifier);
@@ -59,4 +56,16 @@ class BestCheckout extends Module
             );
         }
     }
+    
+    public function hookDisplayPaymentTop($params)
+    {
+        return $this->display(__FILE__, 'views/templates/hook/order-comment.tpl');
+    }
+	
+	
+
+
+	
+	
+	
 }
