@@ -25,8 +25,7 @@ class BestCheckout extends Module
     {
         return parent::install()
             && $this->registerHook('actionFrontControllerSetVariables')
-            && $this->registerHook('actionFrontControllerSetMedia')
-            && $this->registerHook('displayPaymentTop');
+            && $this->registerHook('actionFrontControllerSetMedia');
     }
 
     public function hookActionFrontControllerSetVariables(array &$params)
@@ -56,16 +55,10 @@ class BestCheckout extends Module
             );
         }
     }
-    
+    /*
     public function hookDisplayPaymentTop($params)
     {
         return $this->display(__FILE__, 'views/templates/hook/order-comment.tpl');
     }
-	
-	
-
-
-	
-	
-	
+	 */
 }
